@@ -2,7 +2,7 @@
 
 ## ⚠ This project is no longer maintained, for more active development, check [on-change](https://github.com/sindresorhus/on-change)
 
-## About
+## 关于
 
 Watch.JS is a small library with a lot of possibilities. You may know that the "Observer" design pattern involves executing some function when an observed object changes. Other libraries exist that do this, but with Watch.JS you will not have to change the way you develop. Take a look at the examples to see how simple it is to add Watch.JS to your code.
 
@@ -52,9 +52,9 @@ require("watch", function(WatchJS){
 });
 ```
 
-# Examples
+# 例子
 
-## Observe the changes of one object attribute
+## 监听对象的一个属性的变化
 
 ```javascript
 //defining our object however we like
@@ -72,9 +72,9 @@ watch(ex1, "attr1", function(){
 ex1.attr1 = "other value";
 ```
 
-[Try out](http://jsfiddle.net/NbJuh/62/)
+[试一试](http://jsfiddle.net/NbJuh/62/)
 
-## Observe the changes of more than one object attribute
+## 监听对象的多个属性的变化(属性使用数组传入)
 
 ```javascript
 //defining our object however we like
@@ -93,9 +93,9 @@ watch(ex2, ["attr2", "attr3"], function(){
 ex2.attr2 = 50;​
 ```
 
-[Try out](http://jsfiddle.net/2zT4C/23/)
+[试一试](http://jsfiddle.net/2zT4C/23/)
 
-## Observe the changes of all attributes of the object
+## 监听该对象的所有属性的变化
 
 ```javascript
 //defining our object however we like
@@ -115,9 +115,9 @@ watch(ex3, function(){
 ex3.attr3.push("new value");​
 ```
 
-[Try out](http://jsfiddle.net/C83pW/27/)
+[试一试](http://jsfiddle.net/C83pW/27/)
 
-## Remove a Watcher
+## 移除监听器
 
 ```javascript
 var obj = {
@@ -141,9 +141,9 @@ unwatch(obj, "name", obj.alert);
 obj.name = "phil";​
 ```
 
-[Try out](http://jsfiddle.net/SZ2Ut/9/)
+[试一试](http://jsfiddle.net/SZ2Ut/9/)
 
-## More information about the change
+## 获取属性变化的更多信息
 
 ```javascript
 //defining our object no matter which way we want
@@ -161,11 +161,12 @@ watch(ex1, "attr1", function(prop, action, newvalue, oldvalue){
 ex1.attr1 = "other value";​
 ```
 
-[Try out](http://jsfiddle.net/XnbXS/21/)
+[试一试](http://jsfiddle.net/XnbXS/21/)
 
-## Don't worry about the Infinite Loop
+## 不用担心无限循环
 
 If you don't want to call a second watcher in the current scope just set WatchJS.noMore to true and it will be reset to false when this watcher finishes.
+如果你不想在当前事件循环中调用第二个监听器，只需要设置WatchJS.noMore为true就可以了，当该监听七完成的时候其会自动重设为false。
 
 ```javascript
 //defining our object however we like
@@ -189,9 +190,9 @@ watch(ex1, "attr2", function(){
 ex1.attr1 = "other value to 1"; //attr1 will be changed but will not invoke the attr2`s watcher
 ```
 
-[Try out](http://jsfiddle.net/z2sJr/16/)
+[试一试](http://jsfiddle.net/z2sJr/16/)
 
-## How deep you wanna go? Provide a level of children
+## 设置level决定监听深度
 
 ```javascript
 //defining our object no matter which way we want
@@ -223,11 +224,11 @@ ex.l1b.l2b.deeper = "other value";
 ex.l1b.l2b = "other value";
 ```
 
-[Try out](http://jsfiddle.net/7AwbW/5/)
+[试一试](http://jsfiddle.net/7AwbW/5/)
 
-## By default new attributes will be ignored
+## 添加一个新属性，默认会被忽略，不会调用监听器
 
-After declaring a watcher for some object, when you add new attributes to this object and/or change it, the watcher will not be invoked.
+在为某个对象声明了一个监听器之后，当你为该对象添加新属性并更改它时，将不会调用监听器。
 
 ```javascript
 //defining our object however we like
@@ -245,11 +246,9 @@ ex6.attr3 = null; //no watcher will be invoked
 ex6.attr3 = "value"; //no watcher will be invoked​​​
 ```
 
-[Try out](http://jsfiddle.net/NFmUc/7/)
+[试一试](http://jsfiddle.net/NFmUc/7/)
 
-## Do you want to know when new attributes change too?
-
-Well this is not perfect, you may have to wait 50 miliseconds
+## 若是添加新属性，则必须等待50毫秒才能调用监听器
 
 ```javascript
 //defining our object no matter which way we want
@@ -274,9 +273,9 @@ setTimeout(function(){
     ex.l1b.l2c = "other value";
 }, 100);
 ```
-[Try out](http://jsfiddle.net/wXWPQ/4/)
+[试一试](http://jsfiddle.net/wXWPQ/4/)
 
-## Invoke the watcher anytime you want
+## 你可以随时使用callWatchers方法调用监听器
 
 ```javascript
 //defining our object however we like
@@ -293,9 +292,9 @@ watch(ex7, function(){
 callWatchers(ex7, "attr1"); //invoke the watcher​​
 ```
 
-[Try out](http://jsfiddle.net/98MmB/10/)
+[试一试](http://jsfiddle.net/98MmB/10/)
 
-## Compatible with JQuery
+## 可以与jQuery配合使用
 
 ```javascript
 $(function(){
@@ -311,9 +310,9 @@ $(function(){
     });
 });
 ```
-[Try out](http://jsfiddle.net/fj2Yb/24/)
+[试一试](http://jsfiddle.net/fj2Yb/24/)
 
-## Different ways to build Classes/Objects and use Watch.JS
+## 使用不同的方法构建类/对象并使用Watch.Js
 
 ```javascript
 //open the browser log to view the messages
@@ -378,4 +377,4 @@ watch(orange, function(){
 
 orange.type = "other";
 ```
-[Try out](http://jsfiddle.net/t94Vv/58/)
+[试一试](http://jsfiddle.net/t94Vv/58/)
