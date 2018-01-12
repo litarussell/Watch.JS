@@ -16,16 +16,16 @@
 "use strict";
 (function (factory) {
     if (typeof exports === 'object') {
-        // Node. Does not work with strict CommonJS, but
-        // only CommonJS-like enviroments that support module.exports,
-        // like Node.
+        // 在严格的CommonJS环境下不工作,必须支持module.exports
         module.exports = factory();
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
+        // AMD注册成匿名模块
         define(factory);
     } else {
-        // Browser globals
+        // 浏览器环境
         window.WatchJS = factory();
+        // 参数: 监视对象，[监视属性，回调函数，监听深度，]
         window.watch = window.WatchJS.watch;
         window.unwatch = window.WatchJS.unwatch;
         window.callWatchers = window.WatchJS.callWatchers;
@@ -33,21 +33,28 @@
 }(function () {
 
     var WatchJS = {
+        // 使用WatchJS.suspend(obj)代替
         noMore: false,        // use WatchJS.suspend(obj) instead
+        // 仅使用脏检查去追踪更改
         useDirtyCheck: false // use only dirty checking to track changes.
     },
+    // 
     lengthsubjects = [];
-    
+    // 脏检查列表
     var dirtyChecklist = [];
+    // 使用来自defineProperty 和 __defineSetter__的更改 将应用的更改列表
     var pendingChanges = []; // used coalesce changes from defineProperty and __defineSetter__
-    
-    var supportDefineProperty = false;
+    // 标记是否支持Object.defineProperty方法
+    var supportDefineProperty = false; // 检查是否支持defineProperty
     try {
         supportDefineProperty = Object.defineProperty && Object.defineProperty({},'x', {});
     } catch(ex) {  /* not supported */  }
 
     var isFunction = function (functionToCheck) {
         var getType = {};
+        // 检查是否为函数类型
+        // 将Object原型上的toString方法切换到检测函数的环境中调用,
+        // 而不是调用函数类型重写后的toString方法
         return functionToCheck && getType.toString.call(functionToCheck) == '[object Function]';
     };
 
@@ -62,18 +69,20 @@
     var isObject = function(obj) {
         return {}.toString.apply(obj) === '[object Object]';
     };
-    
+    // 字面上理解是获取对象的差别
     var getObjDiff = function(a, b){
-        var aplus = [],
-        bplus = [];
+        var aplus = [], // aplus数组存储属于a但不属于b的属性
+        bplus = [];     // 反之bplus数组存储属于b但不属于a的属性
 
         if(!(typeof a == "string") && !(typeof b == "string")){
-
+            // 若两对象都不是字符串
             if (isArray(a) && b) {
+                // a为数组
                 for (var i=0; i<a.length; i++) {
                     if (b[i] === undefined) aplus.push(i);
                 }
             } else {
+                // 遍历a中的属性,将属于a但不在b中的属性放到aplus数组中
                 for(var i in a){
                     if (a.hasOwnProperty(i)) {
                         if(b && b[i] === undefined) {
@@ -99,27 +108,29 @@
         }
 
         return {
-            added: aplus,
-            removed: bplus
+            added: aplus,   //aplus中为增加的属性,属于a但不属于b
+            removed: bplus  //bplus中为移除的属性,属于b但不属于a
         }
     };
-
+    // 深拷贝
     var clone = function(obj){
 
         if (null == obj || "object" != typeof obj) {
+            // 若对象为空或不为object类型则直接返回该变量
             return obj;
         }
-
+        //获取对象的构造函数返回,与var a = new b()类似
         var copy = obj.constructor();
 
         for (var attr in obj) {
+            // 将对象的属性拷贝到构造函数里
             copy[attr] = obj[attr];
         }
 
         return copy;        
 
     }
-
+    // 定义访问器属性
     var defineGetAndSet = function (obj, propName, getter, setter) {
         try {
             Object.observe(obj, function(changes) {
@@ -132,13 +143,15 @@
         } 
         catch(e) {
             try {
+                // 注册访问器属性propName的getter和setter 
                 Object.defineProperty(obj, propName, {
                     get: getter,
-                    set: function(value) {        
+                    set: function(value) {
+                        // 将值得变化合并到属性中
                         setter.call(this,value,true); // coalesce changes
                     },
-                    enumerable: true,
-                    configurable: true
+                    enumerable: true,   // 设置为可迭代属性
+                    configurable: true  // 设置属性为可配置属性,可通过delete删除
                 });
             } 
             catch(e2) {
@@ -155,50 +168,56 @@
             }
         }
     };
-
+    // 定义属性
     var defineProp = function (obj, propName, value) {
         try {
             Object.defineProperty(obj, propName, {
-                enumerable: false,
-                configurable: true,
-                writable: false,
+                enumerable: false,  // 不可迭代
+                configurable: true, // 可配置
+                writable: false,    // 不可修改
                 value: value
             });
         } catch(error) {
             obj[propName] = value;
         }
     };
-
+    // 观察脏数据更改
     var observeDirtyChanges = function(obj,propName,setter) {
+        // 将对象的属性添加到dirtyChecklist数组中(脏数据检查列表)
         dirtyChecklist[dirtyChecklist.length] = {
             prop:       propName,
             object:     obj,
-            orig:       clone(obj[propName]),
+            orig:       clone(obj[propName]),   // 将指定属性拷贝到orig中
             callback:   setter
         }        
     }
-    
+    // 主API 
+    // 参数：变量，属性，回调函数
     var watch = function () {
-
         if (isFunction(arguments[1])) {
+            // 监听一个对象的所有属性的变化
             watchAll.apply(this, arguments);
         } else if (isArray(arguments[1])) {
+            // 监听一个对象的多个属性,属性名称用数组传递
             watchMany.apply(this, arguments);
         } else {
+            // 监听一个对象的一个属性
             watchOne.apply(this, arguments);
         }
 
     };
-
-
+    // 监听一个对象的所有属性
     var watchAll = function (obj, watcher, level, addNRemove) {
-
-        if ((typeof obj == "string") || (!(obj instanceof Object) && !isArray(obj))) { //accepts only objects and array (not string)
+        // 仅接收对象和数组
+        if ((typeof obj == "string") || (!(obj instanceof Object) && !isArray(obj))) { 
+            //accepts only objects and array (not string)
             return;
         }
 
         if(isArray(obj)) {
-            defineWatcher(obj, "__watchall__", watcher, level); // watch all changes on the array
+            // 数组
+            // watch all changes on the array
+            defineWatcher(obj, "__watchall__", watcher, level); 
             if (level===undefined||level > 0) {
                 for (var prop = 0; prop < obj.length; prop++) { // watch objects in array
                    watchAll(obj[prop],watcher,level, addNRemove);
@@ -206,6 +225,7 @@
             }
         } 
         else {
+            // 对象
             var prop,props = [];
             for (prop in obj) { //for each attribute if obj is an object
                 if (prop == "$val" || (!supportDefineProperty && prop === 'watchers')) {
@@ -219,13 +239,11 @@
             watchMany(obj, props, watcher, level, addNRemove); //watch all items of the props
         }
 
-
         if (addNRemove) {
             pushToLengthSubjects(obj, "$$watchlengthsubjectroot", watcher, level);
         }
     };
-
-
+    // 监听一个对象的多个属性
     var watchMany = function (obj, props, watcher, level, addNRemove) {
 
         if ((typeof obj == "string") || (!(obj instanceof Object) && !isArray(obj))) { //accepts only objects and array (not string)
@@ -238,17 +256,21 @@
         }
 
     };
-
+    // 监听一个对象的一个属性
     var watchOne = function (obj, prop, watcher, level, addNRemove) {
+        // 若变量为字符串或者其不是对象和数组则返回,不能监听该变量
         if ((typeof obj == "string") || (!(obj instanceof Object) && !isArray(obj))) { //accepts only objects and array (not string)
             return;
         }
-
+        // 若指定变量的属性为函数也不能watch
         if(isFunction(obj[prop])) { //dont watch if it is a function
             return;
         }
+        // 若对应属性不为空且level未定义或大于0,则进行递归处理
         if(obj[prop] != null && (level === undefined || level > 0)){
-            watchAll(obj[prop], watcher, level!==undefined? level-1 : level); //recursively watch all attributes of this
+            //recursively watch all attributes of this
+            // 递归监听每一个属性
+            watchAll(obj[prop], watcher, level!==undefined? level-1 : level);
         }
 
         defineWatcher(obj, prop, watcher, level);
@@ -258,7 +280,7 @@
         }
 
     };
-
+    // 取消监听 主API
     var unwatch = function () {
 
         if (isFunction(arguments[1])) {
@@ -301,7 +323,6 @@
         }
     };
 
-
     var unwatchMany = function (obj, props, watcher) {
 
         for (var prop2 in props) { //watch each attribute of "props" if is an object
@@ -336,6 +357,7 @@
     // Syntax: 
     //      trackChange(obj, callback, recursive, addNRemove)
     //      trackChange(obj, prop, callback, recursive, addNRemove)
+    // 主API
     var trackChange = function() {
         var fn = (isFunction(arguments[2])) ? trackProperty : trackObject ;
         fn.apply(this,arguments);
@@ -407,17 +429,19 @@
             }                           
         }
     }
-    
-    
+    // 定义一个监听器（对象，属性名，回调函数，优先级）
     var defineWatcher = function (obj, prop, watcher, level) {
         var newWatcher = false;
         var isArr = isArray(obj);
         
         if (!obj.watchers) {
+            // 若变量还没有设置watcher,则定义一个watchers对象属性
             defineProp(obj, "watchers", {});
             if (isArr) {
                 // watch array functions
+                // 监听数组 函数
                 watchFunctions(obj, function(index,action,newValue, oldValue) {
+                    // 
                     addPendingChange(obj, index, action,newValue, oldValue);
                     if (level !== 0 && newValue && (isObject(newValue) || isArray(newValue))) {
                         var i,n, ln, wAll, watchList = obj.watchers[prop];
@@ -440,26 +464,27 @@
                 });
             }
         }
-
+        // 若相应属性的监听器为空，则设置为空数组
         if (!obj.watchers[prop]) {
             obj.watchers[prop] = [];
-            if (!isArr) newWatcher = true;
+            if (!isArr) newWatcher = true;  // 设置监听标志为true
         }
-
+        // 遍历相应属性的监听器数组，若重复定义则返回
         for (var i=0; i<obj.watchers[prop].length; i++) {
             if(obj.watchers[prop][i] === watcher){
                 return;
             }
         }
-
+        // 添加一个新的对应属性的watcher到watcher数组中
         obj.watchers[prop].push(watcher); //add the new watcher to the watchers array
-
+        // 若已设置回调函数，则设置相应属性的setter和getter
         if (newWatcher) {
-            var val = obj[prop];            
+            var val = obj[prop];
+            // 直接返回属性值
             var getter = function () {
-                return val;                        
+                return val;
             };
-
+            // 闭包 记录之前的old value
             var setter = function (newval, delayWatcher) {
                 var oldval = val;
                 val = newval;                
@@ -467,14 +492,13 @@
                     && obj[prop] && (isObject(obj[prop]) || isArray(obj[prop]))
                     && !obj[prop].watchers) {
                     // watch sub properties
+                    // 监听子属性，及当前属性值为对象或数组
                     var i,ln = obj.watchers[prop].length; 
                     for(i=0; i<ln; i++) {
                         watchAll(obj[prop], obj.watchers[prop][i], (level===undefined)?level:level-1);
                     }
                 }
-
                 //watchFunctions(obj, prop);
-                
                 if (isSuspended(obj, prop)) {
                     resume(obj, prop);
                     return;
@@ -503,7 +527,7 @@
         }
 
     };
-
+    // 调用监视器
     var callWatchers = function (obj, prop, action, newval, oldval) {
         if (prop !== undefined) {
             var ln, wl, watchList = obj.watchers[prop];
@@ -524,6 +548,7 @@
     };
 
     var methodNames = ['pop', 'push', 'reverse', 'shift', 'sort', 'slice', 'unshift', 'splice'];
+    // 定义数组的监听方法
     var defineArrayMethodWatcher = function (obj, original, methodName, callback) {
         defineProp(obj, methodName, function () {
             var index = 0;
@@ -534,6 +559,8 @@
                var end = start + arguments[1];
                oldValue = obj.slice(start,end);
                newValue = [];
+               // splice语法为splice(1,3,'newvalue1','newvalue2')
+               // arguments[2]为第一个新增的元素
                for(i=2;i<arguments.length;i++) {
                    newValue[i-2] = arguments[i];
                }
@@ -571,6 +598,7 @@
         }
 
         for (var i = methodNames.length, methodName; i--;) {
+            // 为该属性绑定改造后的数组方法用于监听属性变化
             methodName = methodNames[i];
             defineArrayMethodWatcher(obj, obj[methodName], methodName, callback);
         }
@@ -602,28 +630,31 @@
     };
     
     // suspend watchers until next update cycle
+    // 主API 延迟监听到下一次更新循环
     var suspend = function(obj, prop) {
         if (obj.watchers) {
-            var name = '__wjs_suspend__'+(prop!==undefined ? prop : '');
+            var name = '__wjs_suspend__' + (prop!==undefined ? prop : '');
             obj.watchers[name] = true;
         }
     }
-    
+    // 检查是否是延时属性
     var isSuspended = function(obj, prop) {
         return obj.watchers 
                && (obj.watchers['__wjs_suspend__'] || 
-                   obj.watchers['__wjs_suspend__'+prop]);
+                   obj.watchers['__wjs_suspend__' + prop]);
     }
     
     // resumes preivously suspended watchers
+    // 继续之前延迟的监听器
     var resume = function(obj, prop) {
         registerTimeout(function() {
             delete obj.watchers['__wjs_suspend__'];
-            delete obj.watchers['__wjs_suspend__'+prop];
+            delete obj.watchers['__wjs_suspend__' + prop];
         })
     }
 
     var pendingTimerID = null;
+    // 添加将要发生的变化
     var addPendingChange = function(obj,prop, mode, newval, oldval) {
         pendingChanges[pendingChanges.length] = {
             obj:obj,
@@ -636,8 +667,7 @@
             pendingTimerID = setTimeout(applyPendingChanges);
         }
     };
-    
-    
+    // 应用改变
     var applyPendingChanges = function()  {
         // apply pending changes
         var change = null;
@@ -653,8 +683,8 @@
     }
 
     var loop = function(){
-
         // check for new or deleted props
+        // 检查新的或者删除的属性
         for(var i=0; i<lengthsubjects.length; i++) {
 
             var subj = lengthsubjects[i];
@@ -790,7 +820,9 @@
     WatchJS.watch = watch;
     WatchJS.unwatch = unwatch;
     WatchJS.callWatchers = callWatchers;
-    WatchJS.suspend = suspend; // suspend watchers    
+    // 延迟监听
+    WatchJS.suspend = suspend; // suspend watchers
+    // 跟踪对对象或属性的更改，并返回一个简单的更改对象
     WatchJS.onChange = trackChange;  // track changes made to object or  it's property and return a single change object
 
     return WatchJS;
