@@ -71,6 +71,7 @@ QUnit.test("Observe the changes of all properties of the object", function( asse
     assert.expect(3);
     var done1 = assert.async();
     var obj = {
+        dummy: undefined,
         attr1: 1,
         attr2: 2,
         attr3: 3
@@ -285,6 +286,7 @@ QUnit.test("Observe new object properties", function( assert ) {
     assert.expect(4);
     var done1 = assert.async();
     var obj = {
+        dummy: undefined,
         attr1: 1,
         attr2: 2,
         attr3: 3
@@ -294,6 +296,7 @@ QUnit.test("Observe new object properties", function( assert ) {
     WatchJS.watch(obj, function(prop, action, newvalue, oldvalue){
         
         var oldObj = {
+            dummy: undefined,
             attr1: 1,
             attr2: 2,
             attr3: 3
@@ -315,9 +318,8 @@ QUnit.test("Observe new object properties", function( assert ) {
 
 
 QUnit.test("Observe deleted object properties", function( assert ) {
-    assert.expect(6);
+    assert.expect(3);
     var done1 = assert.async();
-    var done2 = assert.async();
     var obj = {
         attr1: 1,
         attr2: 2,
@@ -338,18 +340,10 @@ QUnit.test("Observe deleted object properties", function( assert ) {
             removed: ['attr1']
         }
         
-        if (action==='differentattr') {
-            assert.equal( "root" ,prop, " root property matched" );
-            assert.deepEqual( diff ,newvalue, "New property attrA added" );
-            assert.deepEqual(oldObj, oldvalue, "Old value matched ");
-            done1();
-        }
-        else {
-            assert.equal( "attr1" ,prop, "attr1 property matched" );
-            assert.strictEqual( undefined ,newvalue, "attr1 property updated" );
-            assert.strictEqual( 1, oldvalue, "Old value matched " );
-            done2();
-        }
+        assert.equal( "root" ,prop, " root property matched" );
+        assert.deepEqual( diff ,newvalue, "attr1 property removed" );
+        assert.deepEqual(oldObj, oldvalue, "Old value matched ");
+        done1();
     },undefined,observeNewProp);
     
     delete obj.attr1;    // delete property

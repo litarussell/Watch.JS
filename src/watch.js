@@ -36,7 +36,8 @@
         // 使用WatchJS.suspend(obj)代替
         noMore: false,        // use WatchJS.suspend(obj) instead
         // 仅使用脏检查去追踪更改
-        useDirtyCheck: false // use only dirty checking to track changes.
+        useDirtyCheck: false, // use only dirty checking to track changes.
+        preserveExistingSetters: false
     },
     // 
     lengthsubjects = [];
@@ -85,7 +86,7 @@
                 // 遍历a中的属性,将属于a但不在b中的属性放到aplus数组中
                 for(var i in a){
                     if (a.hasOwnProperty(i)) {
-                        if(b && b[i] === undefined) {
+                        if(b && !b.hasOwnProperty(i)) {
                             aplus.push(i);
                         }
                     }
@@ -99,7 +100,7 @@
             } else {
                 for(var j in b){
                     if (b.hasOwnProperty(j)) {
-                        if(a && a[j] === undefined) {
+                        if(a && !a.hasOwnProperty(j)) {
                             bplus.push(j);
                         }
                     }
@@ -130,43 +131,45 @@
         return copy;        
 
     }
+
     // 定义访问器属性
+    var getExistingSetter = function (obj, propName) {
+        if (WatchJS.preserveExistingSetters) {
+            var existing = Object.getOwnPropertyDescriptor(obj, propName);
+            return existing.set;
+        }
+
+        return undefined;
+    }
+
     var defineGetAndSet = function (obj, propName, getter, setter) {
         try {
-            Object.observe(obj, function(changes) {
-                changes.forEach(function(change) {
-                    if (change.name === propName) {
-                        setter(change.object[change.name]);
+            var existingSetter = getExistingSetter(obj, propName);
+            Object.defineProperty(obj, propName, {
+                get: getter,
+                set: function(value) {
+                    setter.call(this, value, true); // coalesce changes
+                    if (existingSetter) {
+                        existingSetter(value);
                     }
+                },
+                enumerable: true,
+                configurable: true
+            });
+        }
+        catch(e1) {
+            try{
+                Object.prototype.__defineGetter__.call(obj, propName, getter);
+                Object.prototype.__defineSetter__.call(obj, propName, function(value) {
+                    setter.call(this,value,true); // coalesce changes
                 });
-            });            
-        } 
-        catch(e) {
-            try {
-                // 注册访问器属性propName的getter和setter 
-                Object.defineProperty(obj, propName, {
-                    get: getter,
-                    set: function(value) {
-                        // 将值得变化合并到属性中
-                        setter.call(this,value,true); // coalesce changes
-                    },
-                    enumerable: true,   // 设置为可迭代属性
-                    configurable: true  // 设置属性为可配置属性,可通过delete删除
-                });
-            } 
+            }
             catch(e2) {
-                try{
-                    Object.prototype.__defineGetter__.call(obj, propName, getter);
-                    Object.prototype.__defineSetter__.call(obj, propName, function(value) {
-                        setter.call(this,value,true); // coalesce changes
-                    });
-                } 
-                catch(e3) {
-                    observeDirtyChanges(obj,propName,setter);
-                    //throw new Error("watchJS error: browser not supported :/")
-                }
+                observeDirtyChanges(obj,propName,setter);
+                //throw new Error("watchJS error: browser not supported :/")
             }
         }
+
     };
     // 定义属性
     var defineProp = function (obj, propName, value) {
@@ -607,12 +610,12 @@
 
     var unwatchOne = function (obj, prop, watcher) {
         if (prop) {
-            if (obj.watchers[prop]) {
-                if (watcher===undefined) {
+            if (obj.watchers && obj.watchers[prop]) {
+                if (watcher === undefined) {
                     delete obj.watchers[prop]; // remove all property watchers
                 }
                 else {
-                    for (var i=0; i<obj.watchers[prop].length; i++) {
+                    for (var i = 0; i < obj.watchers[prop].length; i++) {
                         var w = obj.watchers[prop][i];
                         if (w == watcher) {
                             obj.watchers[prop].splice(i, 1);
@@ -620,11 +623,10 @@
                     }
                 }
             }
-        }
-        else
-        {
+        } else {
             delete obj.watchers;
         }
+
         removeFromLengthSubjects(obj, prop, watcher);
         removeFromDirtyChecklist(obj, prop);
     };

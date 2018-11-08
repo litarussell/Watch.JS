@@ -1,4 +1,4 @@
-# Watch.js 1.3.1 [下载](https://raw.github.com/melanke/Watch.JS/master/src/watch.js)
+# Watch.js 1.4.2 [Download](https://raw.github.com/melanke/Watch.JS/master/src/watch.js)
 
 ## 关于
 
@@ -9,13 +9,41 @@ Watch.Js是一个充满可能的轻量库。对于观察者模式，它可以在
 ## 兼容所有主流的浏览器: 
 Works with: IE 9+, FF 4+, SF 5+, WebKit, CH 7+, OP 12+, BESEN, Node.JS , Rhino 1.7+
 
+# 安装
+
 #### 浏览器使用标签直接引入
 ```html
 <script src="watch.js" type="text/javascript"></script>
-<!-- watch will be global variable -->
+<!-- watch will be a global variable -->
 ```
 
-#### 浏览器使用RequireJS引入
+#### 使用 NPM
+```
+npm install melanke-watchjs
+```
+
+# 使用模块引入
+
+#### ECMA2015 模块引入, 使用Import关键字
+
+```javascript
+import WatchJS from 'melanke-watchjs';
+
+var watch = WatchJS.watch;
+var unwatch = WatchJS.unwatch;
+var callWatchers = WatchJS.callWatchers;
+```
+
+#### 使用Node的Require
+
+```javascript
+var WatchJS = require("melanke-watchjs")
+var watch = WatchJS.watch;
+var unwatch = WatchJS.unwatch;
+var callWatchers = WatchJS.callWatchers;
+```
+
+#### 使用RequireJS
 ```javascript
 require("watch", function(WatchJS){
     var watch = WatchJS.watch;
@@ -24,37 +52,23 @@ require("watch", function(WatchJS){
 });
 ```
 
-#### Node.JS 引入
-npm install melanke-watchjs
-```javascript
-var WatchJS = require("watchjs")
-var watch = WatchJS.watch;
-var unwatch = WatchJS.unwatch;
-var callWatchers = WatchJS.callWatchers;
-```
-
-#### 使用Bower安装
-```
-bower install watch
-```
-
 # 例子
 
 ## 监听对象的一个属性的变化
 
 ```javascript
-//defining our object however we like
+// 定义一个对象
 var ex1 = {
 	attr1: "initial value of attr1",
 	attr2: "initial value of attr2"
 };
 
-//defining a 'watcher' for an attribute
+// 定义一个监听器, 监听ex1对象中的一个属性
 watch(ex1, "attr1", function(){
 	alert("attr1 changed!");
 });
 
-//when changing the attribute its watcher will be invoked
+// 当该属性变化时, 该监听器就会被调用
 ex1.attr1 = "other value";
 ```
 
@@ -63,41 +77,40 @@ ex1.attr1 = "other value";
 ## 监听对象的多个属性的变化(属性使用数组传入)
 
 ```javascript
-//defining our object however we like
+// 定义含有多个属性的对象
 var ex2 = {
     attr1: 0,
     attr2: 0,
     attr3: 0
 };
 
-//defining a 'watcher' for the attributes
+// 定义多个属性的监听器
 watch(ex2, ["attr2", "attr3"], function(){
     alert("attr2 or attr3 changed!");
 });
 
-//when changing one of the attributes its watcher will be invoked
+// 监听的属性变化之后就会调用监听器
 ex2.attr2 = 50;​
 ```
 
 [试一试](http://jsfiddle.net/2zT4C/23/)
 
-## 监听该对象的所有属性的变化
+## 监听该对象的所有属性的变化(只有两个参数, 不用传入属性)
 
 ```javascript
-//defining our object however we like
+// 定义多个属性
 var ex3 = {
     attr1: 0,
     attr2: "initial value of attr2",
     attr3: ["a", 3, null]
 };
 
-//defining a 'watcher' for the object
-
+// 定义整个对象的监听器
 watch(ex3, function(){
     alert("some attribute of ex3 changes!");
 });
 
-//when changing one of the attributes of the object the watcher will be invoked
+// 数组不能直接赋值, 需要使用数组的操作方法才能调用监听器
 ex3.attr3.push("new value");​
 ```
 
@@ -132,18 +145,16 @@ obj.name = "phil";​
 ## 获取属性变化的更多信息
 
 ```javascript
-//defining our object no matter which way we want
 var ex1 = {
     attr1: "initial value of attr1",
     attr2: "initial value of attr2"
 };
 
-//defining a 'watcher' for an attribute
+// 监听函数可以接受多个参数
 watch(ex1, "attr1", function(prop, action, newvalue, oldvalue){
     alert(prop+" - action: "+action+" - new: "+newvalue+", old: "+oldvalue+"... and the context: "+JSON.stringify(this));
 });
 
-//when changing the attribute its watcher will be invoked
 ex1.attr1 = "other value";​
 ```
 
@@ -152,44 +163,39 @@ ex1.attr1 = "other value";​
 ## 不用担心无限循环
 
 If you don't want to call a second watcher in the current scope just set WatchJS.noMore to true and it will be reset to false when this watcher finishes.
-如果你不想在当前事件循环中调用第二个监听器，只需要设置WatchJS.noMore为true就可以了，当该监听七完成的时候其会自动重设为false。
+如果你不想在当前事件循环中调用第二个监听器，只需要设置WatchJS.noMore为true就可以了，当该监听器完成的时候其会自动重设为false。
 
 ```javascript
-//defining our object however we like
 var ex1 = {
     attr1: "inicial value of attr1",
     attr2: "initial value of attr2"
 };
 
-//defining a 'watcher' for an attribute
 watch(ex1, "attr1", function(){
-    WatchJS.noMore = true; //prevent invoking watcher in this scope
+    WatchJS.noMore = true; // 在当前事件循环阻止调用监听器
     ex1.attr2 = ex1.attr1 + " + 1";
 });
 
-//defining other 'watcher' for another attribute
 watch(ex1, "attr2", function(){
     alert("attr2 changed");
 });
 
-
-ex1.attr1 = "other value to 1"; //attr1 will be changed but will not invoke the attr2`s watcher
+ex1.attr1 = "other value to 1"; // attr1改变调用监听器, 但是不会调用attr2的监听器
 ```
 
 [试一试](http://jsfiddle.net/z2sJr/16/)
 
-## 设置level决定监听深度
+## 设置level监听深度
 
 ```javascript
-//defining our object no matter which way we want
 var ex = {
-    //level 0
+    // level 0
     l1a: "bla bla",
     l1b: {
-        //level 1 or less
+        // level 1 or less
         l2a: "lo lo",
         l2b: {
-            //level 2 or less
+            // level 2 or less
             deeper: "so deep"
         }           
     }
@@ -203,9 +209,7 @@ watch(ex, function(){
     alert("ex changed at lvl 3 or less");
 }, 2);
 
-
 ex.l1b.l2b.deeper = "other value";
-
 
 ex.l1b.l2b = "other value";
 ```
@@ -217,27 +221,24 @@ ex.l1b.l2b = "other value";
 在为某个对象声明了一个监听器之后，当你为该对象添加新属性并更改它时，将不会调用监听器。
 
 ```javascript
-//defining our object however we like
 var ex6 = {
     attr1: 0,
     attr2: 1
 };
 
-//defining a 'watcher' for the object
 watch(ex6, function(){
     alert("some attribute of ex6 changed!")
 });
 
-ex6.attr3 = null; //no watcher will be invoked
-ex6.attr3 = "value"; //no watcher will be invoked​​​
+ex6.attr3 = null; // 不会掉用监听器
+ex6.attr3 = "value"; // 不会调用监听器
 ```
 
 [试一试](http://jsfiddle.net/NFmUc/7/)
 
-## 若是添加新属性，则必须等待50毫秒才能调用监听器
+## 若是添加新属性，则必须等待50毫秒才能调用监听器(需要设置第四个参数为true)
 
 ```javascript
-//defining our object no matter which way we want
 var ex = {
     l1a: "bla bla",
     l1b: {
@@ -252,7 +253,7 @@ watch(ex, function (prop, action, difference, oldvalue){
     
 }, 0, true);
 
-
+// 并不能调用监听器, 需要等待50毫秒才能监听新设置的属性
 ex.l1b.l2c = "new attr"; //it is not instantaneous, you may wait 50 miliseconds
 
 setTimeout(function(){
@@ -264,18 +265,16 @@ setTimeout(function(){
 ## 你可以随时使用callWatchers方法调用监听器
 
 ```javascript
-//defining our object however we like
 var ex7 = {
     attr1: 0,
     attr2: 1
 };
 
-//defining a 'watcher' for the object
 watch(ex7, function(){
     alert("some attribute of ex6 changed!")
 });
 
-callWatchers(ex7, "attr1"); //invoke the watcher​​
+callWatchers(ex7, "attr1"); // 手动调用该属性的监听器
 ```
 
 [试一试](http://jsfiddle.net/98MmB/10/)
@@ -301,8 +300,6 @@ $(function(){
 ## 使用不同的方法构建类/对象并使用Watch.Js
 
 ```javascript
-//open the browser log to view the messages
-
 var Apple = function(type) {
     var _thisApple = this;
     this.type = type;
@@ -320,10 +317,8 @@ var Apple = function(type) {
     });
 };
 
-
 var apple = new Apple("macintosh");
 apple.type = "other";
-
 
 var Banana = function(type) {
     var _thisBanana = this;
